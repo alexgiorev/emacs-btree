@@ -134,13 +134,10 @@ define a B-tree as such."
   BTREE. NODE-TO-ORG is a function which transforms a B-tree node into an
   org-mode node, but it doesn't do anything for the children."
   (setq node-to-org (or node-to-org btree--node-to-org))
-  (btree--insert-org-tree-node (btree-root btree) 1))
+  (btree-depth-first-walk 'btree--insert-org-node btree))
 
-(defun btree--insert-org-tree-node (node level)
-  (insert (funcall node-to-org node level))
-  (setq level (1+ level))
-  (dolist (child (btree--node-children node))
-    (btree--insert-org-tree-node child level)))
+(defun btree--insert-org-node (node)
+  (insert (funcall node-to-org node (1+ btree-walk-current-depth))))
 
 (defun btree--node-to-org-print (node level)
   (concat (make-string level ?*)
