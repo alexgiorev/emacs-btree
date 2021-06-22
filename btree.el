@@ -8,12 +8,15 @@
   ;; root min-degree cmp
   (record 'btree root min-degree cmp))
 
-(defun btree-from-org-tree (cmp min-degree org-tree keyfunc)
+(defun btree-from-org-tree (org-tree &optional keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
 root. KEYFUNC is a function which accepts a string (the title of an org node)
 and returns a list of keys. This function just parses ORG-TREE, it does not
 ensure that the result will posses the B-tree properties. You can use
 `btree-check' for that."
+  (setq cmp (or cmp btree--default-cmp)
+        min-degree (or min-degree btree--default-min-degree)
+        keyfunc (or keyfunc 'btree--org-ints))
   (let* ((entries (btree--entries org-tree))
          (root (cdar entries))
          (tree (btree cmp min-degree root)))
@@ -30,6 +33,9 @@ ensure that the result will posses the B-tree properties. You can use
           ;; continue with next entry
           (setq entries2 (cdr entries2)))))
     tree))
+
+(defun btree--org-ints (title)
+  (read title))
 
 (defun btree--entries (org-tree)
   "Returns a list of entries of the form (DEPTH . BTREE-NODE).
@@ -50,15 +56,41 @@ stores the function which converts the title of an entry to a list of keys."
       (org-map-region extract-entry (point-min) (point-max))
       (reverse entries))))
 
-(defun btree--org-ints (title)
-  "Works on titles which are space-separated lists of integers. Returns that
-list of integers."
-  (read (concat "(" title ")")))
+(defun btree-depth-first-walk (btree-node-fn btree &optional return)
+  "Traverses the tree in depth-first order and calls the function BTREE-NODE-FN
+  on each node of BTREE. To end the walk prematurely, use (throw 'btree-end-walk
+  value), in which case VALUE will be returned. If the walk is doesn't end
+  prematurely, the RETURN argument will be the return value of the
+  function. During the walk, BTREE-NODE-FN can access the current depth through
+  the variable `btree-walk-current-depth'."
+  (catch 'btree-end-walk
+    (btree--walk-node (btree-root btree) 0)
+    return))
+
+(defun btree--walk-node (node btree-walk-current-depth)
+  (funcall btree-node-fn node)
+  (dolist (child (btree--node-children node))
+    (btree--walk-node child (1+ btree-walk-current-depth))))
 
 (defun btree-check (btree)
   "Checks if the BTREE is truly a B-tree, if it satisfies the properties which
 define a B-tree as such."
-  TODO)
+  (and (btree--check-depth btree) TODO))
+
+(defun btree--check-depth (btree)
+  "Checks if all leaves of `btree' have the same depth"
+  (let (; set by the first leaf encountered during the walk
+        leaf-depth)
+    (btree-depth-first-walk 'btree--check-leaf-depth btree t)))
+
+(defun btree--check-leaf-depth (node)
+  (if (btree--node-leafp node)
+      (if leaf-depth
+          ;; this is not the first leaf
+          (if (/= leaf-depth btree-walk-current-depth)
+              (throw 'btree-end-walk 'nil))
+        ;; NODE is the first leaf encountered during this walk
+        (setq leaf-depth btree-walk-current-depth))))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
@@ -182,6 +214,13 @@ function. If NODE is a leaf, returns `nil'"
 (defun btree--node-leafp (node)
   (not (btree--node-children node)))
 
+(defun btree--node-depth (node)
+  (let ((depth -1))
+    (while node
+      (setq depth (1+ depth))
+      (setq node (btree--node-parent node)))
+    depth))
+
 (defun btree--node-insert-key (node key)
   "Inserts KEY into NODE's keys in the correct position.
 Assumes that `cmp' is set."
@@ -280,13 +319,18 @@ access the second child, then its third child, then its fifth child, you call
       (setq node (nth index (btree--node-children node))))
     node))
 
-(defun btree-from-random-sequence (low high)
+(defun btree-from-random-sequence (low high &optional cmp min-degree)
   "Creates the sequence [low...high], randomizes it and inserts each element
 into a B-tree which is then returned."
-  (let ((result (btree 'btree-cmp-int 10)))
+  (let* ((cmp (or cmp btree--default-cmp))
+         (min-degree (or min-degree btree--default-min-degree))
+         (result (btree cmp min-degree)))
     (dolist (key (shuffled-number-sequence low high))
       (btree-insert result key))
     result))
+
+(defvar btree--default-cmp 'btree-cmp-int)
+(defvar btree--default-min-degree 10)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; some org-mode commands which are useful for my own experiments
