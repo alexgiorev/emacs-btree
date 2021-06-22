@@ -10,13 +10,13 @@
 
 (defun btree-from-org-tree (org-tree &optional keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
-root. KEYFUNC is a function which accepts a string (the title of an org node)
-and returns a list of keys. This function just parses ORG-TREE, it does not
-ensure that the result will posses the B-tree properties. You can use
-`btree-check' for that."
+root. KEYFUNC is a function which is called when point is at the beginning of an
+org node in the current buffer, and parses out the keys for the
+node. `btree-from-org-tree' just parses ORG-TREE, it does not ensure that the
+result will posses the B-tree properties. You can use `btree-check' for that."
   (setq cmp (or cmp btree--default-cmp)
         min-degree (or min-degree btree--default-min-degree)
-        keyfunc (or keyfunc 'btree--org-ints))
+        keyfunc (or keyfunc 'btree--org-read-sexp))
   (let* ((entries (btree--entries org-tree))
          (root (cdar entries))
          (tree (btree cmp min-degree root)))
@@ -34,13 +34,14 @@ ensure that the result will posses the B-tree properties. You can use
           (setq entries2 (cdr entries2)))))
     tree))
 
-(defun btree--org-ints (title)
-  (read title))
+(defun btree--org-read-sexp ()
+  "Works on org entries whose title is an S-Expression"
+  (read (nth 4 (org-heading-components))))
 
 (defun btree--entries (org-tree)
   "Returns a list of entries of the form (DEPTH . BTREE-NODE).
 Assumes that (org-kill-is-subtree-p ORG-TREE). At the time of call, `keyfunc'
-stores the function which converts the title of an entry to a list of keys."
+stores the function which converts an entry to the corresponding B-tree node."
   (with-temp-buffer
     (org-mode)
     (insert org-tree)
@@ -49,8 +50,7 @@ stores the function which converts the title of an entry to a list of keys."
             (lambda ()
               (let* ((components (org-heading-components))
                      (depth (nth 0 components))
-                     (title (nth 4 components))
-                     (keys (funcall keyfunc title))
+                     (keys (funcall keyfunc))
                      (node (btree--node nil keys nil)))
                 (push (cons depth node) entries))))
       (org-map-region extract-entry (point-min) (point-max))
