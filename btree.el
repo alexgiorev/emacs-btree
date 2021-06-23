@@ -72,6 +72,28 @@ stores the function which converts an entry to the corresponding B-tree node."
   (dolist (child (btree--node-children node))
     (btree--walk-node child (1+ btree-walk-current-depth))))
 
+(defun btree-map-keys (btree-key-fn btree)
+  "Goes through the keys of BTREE _in order_ and calls BTREE-KEY-FN on
+each. BTREE-KEY-FN is expected to be a function which accepts a single (key)
+argument. Its return value is ignored. This function expects taht BTREE is an
+actual B-tree, in that it satisfies the B-tree properties, in particular that
+the number of keys is one less the number of children."
+  (btree--map-node-keys (btree-root btree)))
+
+(defun btree--map-node-keys (node)
+  (let ((keys (btree--node-keys node))
+        (children (btree--node-children node)))
+    (if (not children)
+        (mapcar btree-key-fn keys)
+      (while keys
+        (btree--map-node-keys (car children))
+        (btree-key-fn (car keys))
+        (setq keys (cdr keys) children (cdr children)))
+      ;; at this point `keys' is nil, but `children' has the last child, because
+      ;; of the B-tree property that the number of keys is one less the number
+      ;; of children. So all that is left to do is to visit the child.
+      (btree--map-node-keys (car children)))))
+
 (defun btree-check (btree)
   "Checks if the BTREE is truly a B-tree, if it satisfies the properties which
 define a B-tree as such."
@@ -113,6 +135,9 @@ the btree which is being traversed."
                 (and (<= min-degree degree max-degree)
                      (= (length (btree--node-keys node)) (1- degree))))
       (throw 'btree-end-walk nil))))
+
+(defun btree--check-order (btree)
+  TODO)
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
