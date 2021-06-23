@@ -78,7 +78,7 @@ each. BTREE-KEY-FN is expected to be a function which accepts a single (key)
 argument. Its return value is ignored. This function expects taht BTREE is an
 actual B-tree, in that it satisfies the B-tree properties, in particular that
 the number of keys is one less the number of children."
-  (btree--map-node-keys (btree-root btree)))
+  (btree--map-node-keys (btree-root btree)) nil)
 
 (defun btree--map-node-keys (node)
   (let ((keys (btree--node-keys node))
@@ -87,7 +87,7 @@ the number of keys is one less the number of children."
         (mapcar btree-key-fn keys)
       (while keys
         (btree--map-node-keys (car children))
-        (btree-key-fn (car keys))
+        (funcall btree-key-fn (car keys))
         (setq keys (cdr keys) children (cdr children)))
       ;; at this point `keys' is nil, but `children' has the last child, because
       ;; of the B-tree property that the number of keys is one less the number
@@ -138,6 +138,12 @@ the btree which is being traversed."
 
 (defun btree--check-order (btree)
   TODO)
+
+(defun btree-to-list (btree)
+  (let (result)
+    (btree-map-keys (lambda (key) (setq result (cons key result)))
+                    btree)
+    (reverse result)))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
