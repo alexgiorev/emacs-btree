@@ -21,7 +21,7 @@ result will posses the B-tree properties. You can use `btree-check' for that."
          (root (cdar entries))
          (tree (btree cmp min-degree root)))
     ;; at the end of this loop, ROOT will be the root and all parent/child
-    ;; relationships will be formed
+    ;; relationships between the nodes will be formed
     (while entries
       (let* ((entry (pop entries))
              (depth (car entry)) (node (cdr entry))
@@ -75,7 +75,8 @@ stores the function which converts an entry to the corresponding B-tree node."
 (defun btree-check (btree)
   "Checks if the BTREE is truly a B-tree, if it satisfies the properties which
 define a B-tree as such."
-  (and (btree--check-depth btree) TODO))
+  (and (btree--check-depth btree)
+       (btree--check-degrees btree)))
 
 (defun btree--check-depth (btree)
   "Checks if all leaves of `btree' have the same depth"
@@ -91,6 +92,27 @@ define a B-tree as such."
               (throw 'btree-end-walk 'nil))
         ;; NODE is the first leaf encountered during this walk
         (setq leaf-depth btree-walk-current-depth))))
+
+(defun btree--check-degrees (btree)
+  "Checks if the degree of each non-root node is within the interval 
+[MIN-DEGREE MAX-DEGREE], and if the root's degree does not exceed
+MAX-DEGREE. There is also a check if the number of keys is one less than the
+number of children."
+  (let ((min-degree (btree-min-degree btree))
+        (max-degree (btree-max-degree btree)))
+    (btree-depth-first-walk 'btree--check-node-degree btree t)))
+
+(defun btree--check-node-degree (node)
+  "Assumes that when called `min-degree' and `max-degree' are set according to
+the btree which is being traversed."
+  (let ((min-degree (if (not (btree--node-parent node)) 1 min-degree))
+        (degree (length (btree--node-children node)))
+        (key-count (length (btree--node-keys node))))
+    (unless (or (and (btree--node-leafp node)
+                     (<= 1 key-count (1- max-degree)))
+                (and (<= min-degree degree max-degree)
+                     (= (length (btree--node-keys node)) (1- degree))))
+      (throw 'btree-end-walk nil))))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
