@@ -8,13 +8,19 @@
 
 (defvar btree--default-min-degree 10)
 
-(defun btree-from-org-tree (org-tree &optional keyfunc cmp min-degree)
+(defun btree-from-org-tree (&optional org-tree keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
-root. KEYFUNC is a function which is called when point is at the beginning of an
-org node in the current buffer, and parses out the keys for the
-node. `btree-from-org-tree' just parses ORG-TREE, it does not ensure that the
-result will posses the B-tree properties. You can use `btree-check' for that."
-  (setq cmp (or cmp btree--default-cmp)
+root. ORG-TREE defaults to the the region if it is active, and if not to the
+whole text of the current buffer. KEYFUNC is a function which is called when
+point is at the beginning of an org node in the current buffer, and parses out
+the keys for the node. It defaults to `btree--default-cmp'. This function just
+parses ORG-TREE, it does not ensure that the result will posses the B-tree
+properties. You can use `btree-check' for that."
+  (setq org-tree (or org-tree
+                     (if (region-active-p)
+                         (buffer-substring (region-beginning) (region-end))
+                       (buffer-string)))
+        cmp (or cmp btree--default-cmp)
         min-degree (or min-degree btree--default-min-degree)
         keyfunc (or keyfunc 'btree--org-read-sexp))
   (let* ((entries (btree--entries org-tree))
@@ -108,7 +114,7 @@ the number of keys is one less the number of children."
   "Checks if the BTREE satisfies the properties which define a B-tree as such."
   (and (btree--check-depth btree)
        (btree--check-degrees btree)
-       (btree-check-order btree)))
+       (btree--check-order btree)))
 
 (defun btree--check-depth (btree)
   "Checks if all leaves of `btree' have the same depth"
@@ -434,3 +440,8 @@ into a B-tree which is then returned."
       (message "%s" count))))
 
 (define-key org-mode-map "\C-c1" 'btree-ints-before)
+
+(defun org-tree-is-btree-p (&optional org-tree keyfunc cmp min-degree)
+  "The arguments are the same as for `btree-from-org-tree'. This function checks
+  if the tree defined by ORG-TREE satisfies the B-tree properties."
+  (btree-check (btree-from-org-tree org-tree keyfunc cmp min-degree)))
