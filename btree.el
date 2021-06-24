@@ -6,6 +6,8 @@
   ;; root min-degree cmp
   (record 'btree root min-degree cmp))
 
+(defvar btree--default-min-degree 10)
+
 (defun btree-from-org-tree (org-tree &optional keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
 root. KEYFUNC is a function which is called when point is at the beginning of an
@@ -33,13 +35,14 @@ result will posses the B-tree properties. You can use `btree-check' for that."
     tree))
 
 (defun btree--org-read-sexp ()
-  "Works on org entries whose title is an S-Expression"
+  "This is a keyfunc for `btree-from-org-tree'. Works on org entries whose title
+is an S-Expression list. The elements of the list will be the keys."
   (read (nth 4 (org-heading-components))))
 
 (defun btree--entries (org-tree)
-  "Returns a list of entries of the form (DEPTH . BTREE-NODE).
-Assumes that (org-kill-is-subtree-p ORG-TREE). At the time of call, `keyfunc'
-stores the function which converts an entry to the corresponding B-tree node."
+  "Returns a list of pairs of the form (DEPTH . BTREE-NODE).  Assumes that
+(org-kill-is-subtree-p ORG-TREE). At the time of call, `keyfunc' stores the
+function which extracts the keys of the b-tree node from the org node."
   (with-temp-buffer
     (org-mode)
     (insert org-tree)
@@ -57,7 +60,7 @@ stores the function which converts an entry to the corresponding B-tree node."
 (defun btree-depth-first-walk (btree-node-fn btree &optional return)
   "Traverses the tree in depth-first order and calls the function BTREE-NODE-FN
   on each node of BTREE. To end the walk prematurely, use (throw 'btree-end-walk
-  value), in which case VALUE will be returned. If the walk is doesn't end
+  value), in which case VALUE will be returned. If the walk doesn't end
   prematurely, the RETURN argument will be the return value of the
   function. During the walk, BTREE-NODE-FN can access the current depth through
   the variable `btree-walk-current-depth'."
@@ -81,6 +84,7 @@ the number of keys is one less the number of children."
     return))
 
 (defun btree-to-list (btree)
+  "Convers BTREE into a list of keys in ascending order."
   (let (result)
     (btree-map-keys (lambda (key) (setq result (cons key result)))
                     btree)
@@ -101,8 +105,7 @@ the number of keys is one less the number of children."
       (btree--map-node-keys (car children)))))
 
 (defun btree-check (btree)
-  "Checks if the BTREE is truly a B-tree, if it satisfies the properties which
-define a B-tree as such."
+  "Checks if the BTREE satisfies the properties which define a B-tree as such."
   (and (btree--check-depth btree)
        (btree--check-degrees btree)
        (btree-check-order btree)))
@@ -144,6 +147,9 @@ the btree which is being traversed."
       (throw 'btree-end-walk nil))))
 
 (defun btree--check-order (btree)
+  "Checks if the keys are properly ordered (if the keys in each node are
+ordered, and if the subtree between two keys has all keys inside of it between
+those two keys."
   (let ((cmp (btree-cmp btree))
         previous-key)
     (btree-map-keys (lambda (key)
@@ -213,7 +219,7 @@ the btree which is being traversed."
 leaf, this will return the leftmost such leaf. Assumes `cmp' is set."
   (let ((node (btree-root btree)))
     (while (not (btree--node-leafp node))
-      (setq node (btree--find-child node key)))
+      (setq node (btree--continuation-child node key)))
     node))
 
 (defun btree-search (btree key)
@@ -224,7 +230,7 @@ leaf, this will return the leftmost such leaf. Assumes `cmp' is set."
 (defun btree-delete (btree key)
   TODO)
 
-(defun btree--find-child (node key)
+(defun btree--continuation-child (node key)
   "Returns the child of NODE which we should visit to continue the search for
 KEY. Assumes that at the time of call `cmp' stores the key comparison
 function. If NODE is a leaf, returns `nil'"
@@ -237,9 +243,9 @@ function. If NODE is a leaf, returns `nil'"
       (car children))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Nodes. Many node functions assume that `btree' stores the B-tree which the
-;; node is a part of. This is sensible because normally we call a node function
-;; in the context of some tree.
+;; Nodes. Many node functions assume that the variable `btree' stores the B-tree
+;; in which the node finds itself in. This is sensible because normally we call
+;; a node function in the context of some tree.
 
 (defun btree--node (&optional parent keys children)
   (record 'btree-node parent keys children))
@@ -365,6 +371,8 @@ and inserts LEFT and RIGHT in its place."
         ((> int1 int2) '>)
         (t '=)))
 
+(defvar btree--default-cmp 'btree-cmp-int)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
 
@@ -386,9 +394,6 @@ into a B-tree which is then returned."
     (dolist (key (shuffled-number-sequence low high))
       (btree-insert result key))
     result))
-
-(defvar btree--default-cmp 'btree-cmp-int)
-(defvar btree--default-min-degree 10)
 
 (defun shuffled-number-sequence (low high)
   "Returns a list of the numbers in the interval [LOW HIGH] shuffled randomly"
