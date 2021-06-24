@@ -96,6 +96,14 @@ the number of keys is one less the number of children."
                     btree)
     (reverse result)))
 
+(defun btree-from-list (keys &optional cmp min-degree)
+  (setq cmp (or cmp btree--default-cmp)
+        min-degree (or min-degree btree--default-min-degree))
+  (let ((btree (btree cmp min-degree)))
+    (dolist (key keys)
+      (btree-add btree key))
+    btree))
+
 (defun btree--map-node-keys (node)
   (let ((keys (btree-node-keys node))
         (children (btree-node-children node)))
@@ -394,12 +402,7 @@ access the second child, then its third child, then its fifth child, you call
 (defun btree-from-random-sequence (low high &optional cmp min-degree)
   "Creates the sequence [low...high], randomizes it and inserts each element
 into a B-tree which is then returned."
-  (let* ((cmp (or cmp btree--default-cmp))
-         (min-degree (or min-degree btree--default-min-degree))
-         (result (btree cmp min-degree)))
-    (dolist (key (shuffled-number-sequence low high))
-      (btree-add result key))
-    result))
+  (btree-from-list (shuffled-number-sequence low high) cmp min-degree))
 
 (defun shuffled-number-sequence (low high)
   "Returns a list of the numbers in the interval [LOW HIGH] shuffled randomly"
