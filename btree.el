@@ -72,13 +72,21 @@ stores the function which converts an entry to the corresponding B-tree node."
   (dolist (child (btree--node-children node))
     (btree--walk-node child (1+ btree-walk-current-depth))))
 
-(defun btree-map-keys (btree-key-fn btree)
+(defun btree-map-keys (btree-key-fn btree &optional return)
   "Goes through the keys of BTREE _in order_ and calls BTREE-KEY-FN on
 each. BTREE-KEY-FN is expected to be a function which accepts a single (key)
 argument. Its return value is ignored. This function expects taht BTREE is an
 actual B-tree, in that it satisfies the B-tree properties, in particular that
 the number of keys is one less the number of children."
-  (btree--map-node-keys (btree-root btree)) nil)
+  (catch 'btree-end-map-keys 
+    (btree--map-node-keys (btree-root btree))
+    return))
+
+(defun btree-to-list (btree)
+  (let (result)
+    (btree-map-keys (lambda (key) (setq result (cons key result)))
+                    btree)
+    (reverse result)))
 
 (defun btree--map-node-keys (node)
   (let ((keys (btree--node-keys node))
@@ -135,15 +143,6 @@ the btree which is being traversed."
                 (and (<= min-degree degree max-degree)
                      (= (length (btree--node-keys node)) (1- degree))))
       (throw 'btree-end-walk nil))))
-
-(defun btree--check-order (btree)
-  TODO)
-
-(defun btree-to-list (btree)
-  (let (result)
-    (btree-map-keys (lambda (key) (setq result (cons key result)))
-                    btree)
-    (reverse result)))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
