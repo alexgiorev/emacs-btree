@@ -8,7 +8,7 @@
 
 (defvar btree--default-min-degree 10)
 
-(defun btree-from-org-tree (&optional org-tree keyfunc cmp min-degree)
+(defun btree-from-org (&optional org-tree keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
 root. ORG-TREE defaults to the the region if it is active, and if not to the
 whole text of the current buffer. KEYFUNC is a function which is called when
@@ -41,7 +41,7 @@ properties. You can use `btree-check' for that."
     tree))
 
 (defun btree--org-read-sexp ()
-  "This is a keyfunc for `btree-from-org-tree'. Works on org entries whose title
+  "This is a keyfunc for `btree-from-org'. Works on org entries whose title
 is an S-Expression list. The elements of the list will be the keys."
   (read (nth 4 (org-heading-components))))
 
@@ -192,7 +192,7 @@ those two keys."
 ;;;;;;;;;;;;;;;;;;;;
 ;; operations
 
-(defun btree-insert (btree key)
+(defun btree-add (btree key)
   (let* ((cmp (btree-cmp btree))
          (node (btree--find-leaf btree key))
          parent)
@@ -202,7 +202,7 @@ those two keys."
              (btree--node-split node)
              (when parent (setq node parent))))))
 
-(defun btree-insert-org-tree (btree &optional node-to-org)
+(defun btree-insert-org (btree &optional node-to-org)
   "Inserts into the current buffer at point an org-mode representation of
   BTREE. NODE-TO-ORG is a function which transforms a B-tree node into an
   org-mode node, but it doesn't do anything for the children."
@@ -398,7 +398,7 @@ into a B-tree which is then returned."
          (min-degree (or min-degree btree--default-min-degree))
          (result (btree cmp min-degree)))
     (dolist (key (shuffled-number-sequence low high))
-      (btree-insert result key))
+      (btree-add result key))
     result))
 
 (defun shuffled-number-sequence (low high)
@@ -441,7 +441,7 @@ into a B-tree which is then returned."
 
 (define-key org-mode-map "\C-c1" 'btree-ints-before)
 
-(defun org-tree-is-btree-p (&optional org-tree keyfunc cmp min-degree)
-  "The arguments are the same as for `btree-from-org-tree'. This function checks
+(defun org-btree-p (&optional org-tree keyfunc cmp min-degree)
+  "The arguments are the same as for `btree-from-org'. This function checks
   if the tree defined by ORG-TREE satisfies the B-tree properties."
-  (btree-check (btree-from-org-tree org-tree keyfunc cmp min-degree)))
+  (btree-check (btree-from-org org-tree keyfunc cmp min-degree)))
