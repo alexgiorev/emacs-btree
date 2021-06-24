@@ -106,7 +106,8 @@ the number of keys is one less the number of children."
   "Checks if the BTREE is truly a B-tree, if it satisfies the properties which
 define a B-tree as such."
   (and (btree--check-depth btree)
-       (btree--check-degrees btree)))
+       (btree--check-degrees btree)
+       (btree-check-order btree)))
 
 (defun btree--check-depth (btree)
   "Checks if all leaves of `btree' have the same depth"
@@ -143,6 +144,16 @@ the btree which is being traversed."
                 (and (<= min-degree degree max-degree)
                      (= (length (btree--node-keys node)) (1- degree))))
       (throw 'btree-end-walk nil))))
+
+(defun btree--check-order (btree)
+  (let ((cmp (btree-cmp btree))
+        previous-key)
+    (btree-map-keys (lambda (key)
+                      (when (and previous-key
+                                 (eq (funcall cmp previous-key key) '>))
+                        (throw 'btree-end-map-keys nil))
+                      (setq previous-key key))
+                    btree t)))
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; getters
