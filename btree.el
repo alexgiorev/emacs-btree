@@ -1,5 +1,3 @@
-(load "~/.emacs.d/misc.el")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tree
 
@@ -391,6 +389,31 @@ into a B-tree which is then returned."
 
 (defvar btree--default-cmp 'btree-cmp-int)
 (defvar btree--default-min-degree 10)
+
+(defun shuffled-number-sequence (low high)
+  "Returns a list of the numbers in the interval [LOW HIGH] shuffled randomly"
+  (if (> low high)
+      (error "LOW (%s) must be less than or equal to HIGH (%s)" low high))
+  (let* ((vec (vector-number-sequence low high))
+         (size (length vec))
+         random-index)
+    (dotimes (N (1- (length vec)))
+      (setq random-index (random (- size N)))
+      (vector-swap vec random-index (- size 1 N)))
+    (append vec nil)))
+
+(defsubst vector-swap (vec i1 i2)
+  (let ((v1 (aref vec i1)) (v2 (aref vec i2)))
+    (aset vec i1 v2) (aset vec i2 v1)))
+    
+(defun vector-number-sequence (low high)
+  (if (> low high)
+      (error "LOW (%s) must be less than or equal to HIGH (%s)" low high))
+  (let* ((size (- high low -1))
+         (result (make-vector size nil)))
+    (dotimes (index size)
+      (aset result index (+ low index)))
+    result))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; some org-mode commands which are useful for my own experiments
