@@ -1,5 +1,7 @@
 I implemented a little library so that I can play around with B-trees, because I believe that is the best way to understand them. With this library you can easily create large B-trees, visualize them (in org-mode's tree syntax), store them in files to be used in a different session, and perform your own manual operations on them and then check if the result is a B-tree, thereby verifying that you have a correct understanding of various algorithms, and also enabling you to experiment with new algorithms that you may have come up with yourself.
-* TODO Video demonstration
+
+[[https://www.youtube.com/watch?v=jVNCLCpSKvY][See the video demo]]
+
 * Creating trees
 ** Creating an empty tree
 You can do this with the ~btree~ function, which accepts two arguments: a function used to compare keys and a minimum degree for the tree and returns a btree object. You can omit these arguments, in which case they assume default values.
