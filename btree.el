@@ -9,11 +9,11 @@
 (defvar btree-default-min-degree 10)
 
 (defun btree-from-org (&optional org-tree keyfunc cmp min-degree)
-  "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
-root. ORG-TREE defaults to the the region if it is active, and if not to the
-whole text of the current buffer. KEYFUNC is a function which is called when
+  "Assumes that (org-kill-is-subtree-p ORG-TREE), that is, that ORG-TREE is
+well-formed. ORG-TREE defaults to the region if it is active, and if not to
+the whole text of the current buffer. KEYFUNC is a function which is called when
 point is at the beginning of an org node in the current buffer, and parses out
-the keys for the node. It defaults to `btree-default-cmp'. This function just
+the keys for the node. It defaults to `btree-default-keyfunc'. This function just
 parses ORG-TREE, it does not ensure that the result will posses the B-tree
 properties. You can use `btree-check' for that."
   (setq org-tree (or org-tree
@@ -22,7 +22,7 @@ properties. You can use `btree-check' for that."
                        (buffer-string)))
         cmp (or cmp btree-default-cmp)
         min-degree (or min-degree btree-default-min-degree)
-        keyfunc (or keyfunc 'btree--org-read-sexp))
+        keyfunc (or keyfunc btree-default-keyfunc))
   (let* ((entries (btree--entries org-tree))
          (root (cdar entries))
          (tree (btree cmp min-degree root)))
@@ -41,9 +41,12 @@ properties. You can use `btree-check' for that."
     tree))
 
 (defun btree--org-read-sexp ()
-  "This is a keyfunc for `btree-from-org'. Works on org entries whose title
-is an S-Expression list. The elements of the list will be the keys."
+  "This is a keyfunc for `btree-from-org'. Works on org entries whose title is
+the print syntax of a list. The keys of the node will be the elements of this
+list."
   (read (nth 4 (org-heading-components))))
+
+(defvar btree-default-keyfunc 'btree--org-read-sexp)
 
 (defun btree--entries (org-tree)
   "Returns a list of pairs of the form (DEPTH . BTREE-NODE).  Assumes that
@@ -60,7 +63,8 @@ function which extracts the keys of the b-tree node from the org node."
                      (keys (funcall keyfunc))
                      (node (btree-node nil keys nil)))
                 (push (cons depth node) entries))))
-      (org-map-region extract-entry (point-min) (point-max))
+      (goto-char 0)
+      (org-map-tree extract-entry)
       (reverse entries))))
 
 (defun btree-depth-first-walk (btree-node-fn btree &optional return)
