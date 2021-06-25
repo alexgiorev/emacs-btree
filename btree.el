@@ -6,22 +6,22 @@
   ;; root min-degree cmp
   (record 'btree root min-degree cmp))
 
-(defvar btree--default-min-degree 10)
+(defvar btree-default-min-degree 10)
 
 (defun btree-from-org (&optional org-tree keyfunc cmp min-degree)
   "Assumes that (org-kill-is-subtree-p ORG-TREE) and that there is only one
 root. ORG-TREE defaults to the the region if it is active, and if not to the
 whole text of the current buffer. KEYFUNC is a function which is called when
 point is at the beginning of an org node in the current buffer, and parses out
-the keys for the node. It defaults to `btree--default-cmp'. This function just
+the keys for the node. It defaults to `btree-default-cmp'. This function just
 parses ORG-TREE, it does not ensure that the result will posses the B-tree
 properties. You can use `btree-check' for that."
   (setq org-tree (or org-tree
                      (if (region-active-p)
                          (buffer-substring (region-beginning) (region-end))
                        (buffer-string)))
-        cmp (or cmp btree--default-cmp)
-        min-degree (or min-degree btree--default-min-degree)
+        cmp (or cmp btree-default-cmp)
+        min-degree (or min-degree btree-default-min-degree)
         keyfunc (or keyfunc 'btree--org-read-sexp))
   (let* ((entries (btree--entries org-tree))
          (root (cdar entries))
@@ -97,8 +97,8 @@ the number of keys is one less the number of children."
     (reverse result)))
 
 (defun btree-from-list (keys &optional cmp min-degree)
-  (setq cmp (or cmp btree--default-cmp)
-        min-degree (or min-degree btree--default-min-degree))
+  (setq cmp (or cmp btree-default-cmp)
+        min-degree (or min-degree btree-default-min-degree))
   (let ((btree (btree cmp min-degree)))
     (dolist (key keys)
       (btree-add btree key))
@@ -385,7 +385,7 @@ and inserts LEFT and RIGHT in its place."
         ((> int1 int2) '>)
         (t '=)))
 
-(defvar btree--default-cmp 'btree-cmp-int)
+(defvar btree-default-cmp 'btree-cmp-int)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helpers
