@@ -1,0 +1,20 @@
+I implemented a little library so that I can play around with B-trees, because I believe that is the best way to understand them. With this library you can easily create large B-trees, visualize them (in org-mode's tree syntax), store them in files to be used in a different session, and perform your own manual operations on them and then check if the result is a B-tree, thereby verifying that you have a correct understanding of various algorithms, and also enabling you to experiment with new algorithms that you may have come up with yourself.
+* TODO Video demonstration
+* Creating trees
+** Creating an empty tree
+You can do this with the ~btree~ function, which accepts two arguments: a function used to compare keys and a minimum degree for the tree and returns a btree object. You can omit these arguments, in which case they assume default values.
+
+The default comparison function only works for comparing integers. You can modify which comparison function is the default one by setting the variable ~btree-default-cmp~. A comparison function accepts two keys and returns one of the symbols ~(< = >)~ to indicate the relation between the keys.
+
+The default minimum degree is 10, which is again modifiable through the variable ~btree-default-min-degree~. To add keys into the tree, you can use ~(btree-add btree key)~.
+
+** Creating a tree from a list
+It would be convenient to create a (potentially large) set of keys and then a B-tree from that set. This can be done through the function ~btree-from-list~, which accepts a list of keys and optional comparison function and minimum degree, creates an empty tree and inserts the elements from the list in the list order, and returns the resulting tree. For example ~(btree-from-list (number-sequence 1 100000))~ will create a B-tree with a hundred thousand keys. This would be hard to do with online visualizers, like [[https://www.cs.usfca.edu/~galles/visualization/BTree.html][this one]] (which is still excellent).
+*** Creating a tree from a random sequence
+If you want to easily create trees with a large number of keys, but don't want the keys to be inserted in the same order each time, thereby resulting in the same tree each time, you can use ~(btree-from-random-sequence low high &optional cmp min-degree)~, which creates a number-sequence from LOW to HIGH, inserts the elements in the tree *in random order*, and returns the tree.
+* Visualizing trees
+You can use the function ~(btree-insert-org btree &optional node-to-org)~ to visualize a B-tree. The argument ~node-to-org~ is a function which accepts a B-tree node and returns a string representing an org-mode entry which corresponds to that node. There is a default function which does this which is stored in ~btree-node-to-org~, so you often don't need to roll your own. The default function outputs an org-mode entry whose title is the print syntax of the node's key list.
+* Storing/loading trees in/from files
+Since visualizing a tree simply means converting it into text in the org-mode syntax, to save a tree you can just open a new buffer, invoke ~(btree-insert-org btree)~ in the buffer, and then just save it. To load the tree, you can use the ~btree-from-org~ function. It is important that the minimum degree you pass to this function actually matches the minimum degree of the tree you saved. If this is an annoyance, I may fix it in the future by storing in the buffer information about the minimum degree as well.
+* Verifying that a tree is actually a B-tree
+A B-tree is defined by certain properties (e.g. that all leaves have the same depth, that the keys in a node are ordered, etc.). Sometimes you may end up with a ~btree~ object which may not have these properties (e.g. you manipulated an org buffer repreesnting a tree and you created a ~btree~ with ~btree-from-org~). To check that a ~btree~ object actually has the properties which define a B-tree as such, use ~(btree-check btree)~. This is also useful for testing and experimenting with new algorithms.
