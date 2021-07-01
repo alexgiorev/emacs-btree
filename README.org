@@ -1,7 +1,6 @@
 I implemented a little library so that I can play around with B-trees, because I believe that is the best way to understand them. With this library you can easily create large B-trees, visualize them (in org-mode's tree syntax), store them in files to be used in a different session, and perform your own manual operations on them and then check if the result is a B-tree, thereby verifying that you have a correct understanding of various algorithms, and also enabling you to experiment with new algorithms that you may have come up with yourself.
 
 [[https://www.youtube.com/watch?v=jVNCLCpSKvY][See the video demo]]
-
 * Creating trees
 ** Creating an empty tree
 You can do this with the ~btree~ function, which accepts two arguments: a function used to compare keys and a minimum degree for the tree and returns a btree object. You can omit these arguments, in which case they assume default values.
@@ -20,3 +19,7 @@ You can use the function ~(btree-insert-org btree &optional node-to-org)~ to vis
 Since visualizing a tree simply means converting it into text in the org-mode syntax, to save a tree you can just open a new buffer, invoke ~(btree-insert-org btree)~ in the buffer, and then just save it. To load the tree, you can use the ~btree-from-org~ function. It is important that the minimum degree you pass to this function actually matches the minimum degree of the tree you saved. If this is an annoyance, I may fix it in the future by storing in the buffer information about the minimum degree as well.
 * Verifying that a tree is actually a B-tree
 A B-tree is defined by certain properties (e.g. that all leaves have the same depth, that the keys in a node are ordered, etc.). Sometimes you may end up with a ~btree~ object which may not have these properties (e.g. you manipulated an org buffer repreesnting a tree and you created a ~btree~ with ~btree-from-org~). To check that a ~btree~ object actually has the properties which define a B-tree as such, use ~(btree-check btree)~. This is also useful for testing and experimenting with new algorithms.
+* Don't use lexical scope!
+This library relies on dynamic scope, don't use it with lexical scope enabled.
+* Comparison functions
+Functions which create B-trees accept as an argument a comparison function. This is a function which accepts two keys and returns one of the symbols ~(< = >)~, depending on the relation between the keys. The defualt comparison function is stored in ~btree-default-cmp~, and its value is ~btree-cmp-int~, which works on integer keys.
